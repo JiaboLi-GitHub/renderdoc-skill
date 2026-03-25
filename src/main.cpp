@@ -13,6 +13,7 @@ REPLAY_PROGRAM_MARKER()
 std::unique_ptr<Command> makeOpenCommand();
 std::unique_ptr<Command> makeInfoCommand();
 std::unique_ptr<Command> makeDrawsCommand();
+std::unique_ptr<Command> makeEventCommand();
 
 static std::map<std::string, std::unique_ptr<Command>> commands;
 
@@ -34,6 +35,7 @@ int main(int argc, char **argv)
     commands["open"] = makeOpenCommand();
     commands["info"] = makeInfoCommand();
     commands["draws"] = makeDrawsCommand();
+    commands["event"] = makeEventCommand();
 
     if(argc < 2)
     {
