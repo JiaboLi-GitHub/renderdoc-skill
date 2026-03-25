@@ -1,5 +1,7 @@
 # renderdoc-tool
 
+[中文文档](README_zh.md)
+
 A stateless C++ CLI that wraps RenderDoc's replay API, enabling AI agents (and humans) to analyze GPU capture files (`.rdc`) via structured JSON output.
 
 ## Quick Start
