@@ -50,8 +50,18 @@ D:\renderdoc-skill\
 - **CMake** project
 - `RENDERDOC_DIR` variable points to `D:\renderdoc`
 - Includes: `${RENDERDOC_DIR}/renderdoc/api/replay/` headers
-- Links: pre-built `renderdoc.dll` (import lib)
-- Output: `renderdoc-tool.exe` (requires `renderdoc.dll` at runtime)
+- Links: pre-built import lib at `${RENDERDOC_DIR}/x64/Release/renderdoc.lib`
+- Output: `renderdoc-tool.exe` (requires `renderdoc.dll` at runtime, copy from `${RENDERDOC_DIR}/x64/Release/`)
+- Must use `REPLAY_PROGRAM_MARKER()` macro in main.cpp to prevent RenderDoc self-capture
+
+### Implementation Notes
+
+- RenderDoc uses its own container types (`rdcarray<T>`, `rdcstr`) instead of STL. All API calls use these types, not `std::vector`/`std::string`.
+- `GlobalEnvironment` struct must be default-constructed for `RENDERDOC_InitialiseReplay()`.
+- `ActionDescription::GetName()` requires a `const SDFile&` parameter obtained from `IReplayController::GetStructuredFile()`.
+- `PipeState` (API-agnostic) should be used instead of API-specific state objects (e.g., `GetD3D11PipelineState()`), so the tool works across D3D11, D3D12, Vulkan, and OpenGL captures.
+- `ResourceFormat` has a `Name()` method for string serialization of texture formats.
+- Stateless architecture means each invocation replays the capture's resource creation. Expect 5-30 seconds per command on large captures.
 
 ### Core Components
 
@@ -141,12 +151,12 @@ renderdoc-tool open test.rdc
 
 Output:
 ```json
-{"status": "ok", "driver": "D3D11", "machineIdent": 1}
+{"status": "ok", "driver": "D3D11", "machineIdent": "windows64", "replaySupport": true}
 ```
 
-Opens file, creates replay controller, immediately closes. Validates the file is usable and returns basic metadata.
+Opens file and validates metadata without creating a full replay controller. This is a lightweight check — no GPU device creation. `machineIdent` is a string (from `RecordedMachineIdent()`), `replaySupport` indicates whether the local machine can replay this capture.
 
-RenderDoc API calls: `RENDERDOC_OpenCaptureFile()` → `ICaptureFile::OpenFile()` → `ICaptureFile::OpenCapture()` → close.
+RenderDoc API calls: `RENDERDOC_OpenCaptureFile()` → `ICaptureFile::OpenFile()` → `ICaptureFile::LocalReplaySupport()` → close.
 
 ### `info` — Frame summary
 
@@ -182,7 +192,7 @@ Output:
 ]
 ```
 
-Recursively traverses `GetRootActions()` and flattens all actions into a list.
+Recursively traverses `GetRootActions()` and flattens all actions into a list. Action names are obtained via `ActionDescription::GetName(controller->GetStructuredFile())`.
 
 ### `event` — Single event pipeline state
 
@@ -203,7 +213,9 @@ Output:
 }
 ```
 
-RenderDoc API calls: `SetFrameEvent(eid, true)` → `GetPipelineState()` → extract VS/PS, viewport, render targets, depth target.
+RenderDoc API calls: `SetFrameEvent(eid, true)` → `GetPipelineState()` (returns API-agnostic `PipeState`) → extract VS/PS via `GetShader()`/`GetShaderEntryPoint()`, viewport via `GetViewport()`, render targets via `GetOutputTargets()`, depth target via `GetDepthTarget()`.
+
+Note: Some events (e.g., resource creation, map/unmap) have no meaningful pipeline state. In this case, shader fields will be null and the output will reflect the partial state available.
 
 ## Error Handling
 
@@ -218,6 +230,7 @@ Error categories:
 - Invalid/corrupt .rdc file
 - Replay controller creation failure (e.g., GPU driver mismatch)
 - Invalid event ID (for `event` command)
+- Event has no pipeline state (non-draw event) — returns partial JSON, not an error
 - Missing required arguments
 
 ## Future Extensions (post-MVP)
