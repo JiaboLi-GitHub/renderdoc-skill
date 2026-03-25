@@ -11,6 +11,7 @@
 REPLAY_PROGRAM_MARKER()
 
 std::unique_ptr<Command> makeOpenCommand();
+std::unique_ptr<Command> makeInfoCommand();
 
 static std::map<std::string, std::unique_ptr<Command>> commands;
 
@@ -30,6 +31,7 @@ int main(int argc, char **argv)
 
     // Register commands here as they are implemented
     commands["open"] = makeOpenCommand();
+    commands["info"] = makeInfoCommand();
 
     if(argc < 2)
     {
