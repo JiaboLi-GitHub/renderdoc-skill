@@ -10,6 +10,8 @@
 
 REPLAY_PROGRAM_MARKER()
 
+std::unique_ptr<Command> makeOpenCommand();
+
 static std::map<std::string, std::unique_ptr<Command>> commands;
 
 static void print_usage()
@@ -27,7 +29,7 @@ int main(int argc, char **argv)
     RENDERDOC_InitialiseReplay(env, args);
 
     // Register commands here as they are implemented
-    // commands["open"] = makeOpenCommand();
+    commands["open"] = makeOpenCommand();
 
     if(argc < 2)
     {
