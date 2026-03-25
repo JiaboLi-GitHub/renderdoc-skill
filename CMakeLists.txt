@@ -9,7 +9,7 @@ set(RENDERDOC_DIR "D:/renderdoc" CACHE PATH "Path to RenderDoc source")
 set(RENDERDOC_LIB_DIR "${RENDERDOC_DIR}/x64/Release" CACHE PATH "Path to renderdoc.lib/dll")
 
 # Sources
-file(GLOB_RECURSE SOURCES src/*.cpp)
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 
 add_executable(renderdoc-tool ${SOURCES})
 
